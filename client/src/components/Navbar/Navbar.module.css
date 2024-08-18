@@ -1,0 +1,14 @@
+.navbar {
+    background-color: #cddfe0 !important;
+    margin: 10px;
+}
+
+.navLink {
+    color: #000 !important;
+    font-weight: 500;
+}
+
+.logo {
+    height: 40px;
+    width: auto;
+}

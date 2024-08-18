@@ -1,0 +1,12 @@
+.uploadSection {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.uploadButton {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+}
