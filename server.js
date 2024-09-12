@@ -18,6 +18,8 @@ app.use((req, res, next) => {
   }
 });
 
+app.use('/public', express.static(path.join(__dirname, './', 'public')));
+
 // API routes
 app.use('/api', routesHandler);
 

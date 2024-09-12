@@ -38,7 +38,10 @@ exports.convertFile = async (req, res) => {
     // Clean up uploaded file after successful conversion
     await deleteFile(finalPath);
 
-    res.json({ convertedFile: convertedFilePath });
+    // Construct the full URL to the converted file
+    const fileUrl = `${req.protocol}://${req.get('host')}/public/outputs/${convertedFileName}`;
+
+    res.json({ convertedFileUrl: fileUrl, convertedFileName: convertedFileName });
   } catch (error) {
     console.error('Error during conversion:', error);
 

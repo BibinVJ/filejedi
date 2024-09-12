@@ -1,19 +1,106 @@
+.container {
+   width: 100%;
+   display: flex;
+   flex-direction: row;
+   flex-wrap: wrap;
+   justify-content: center;
+   align-items: center;
+}
+
 .dropzone {
+  width: 50%;
+  display: flex;
+  margin: 10px;
+}
+
+.dropzone_shrinked {
+  margin: 10px;
+  height: 70px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  width: 80%;
+}
+
+.dropzone_box {
   text-align: center;
   padding: 30px;
   border: 3px dashed #eeeeee;
   background-color: #fafafa;
   color: #bdbdbd;
   cursor: pointer;
-  margin-bottom: 20px;
+  border-radius: 4px;
+  display: block;
+  width: 100%;
 }
 
-.selected_file_wrapper {
+.convert_button {
+  height: 100%;
+  width: 20%;
   text-align: center;
   padding: 3px;
 }
 
-.selected_file {
+.selected_files {
+  margin: 10px;
+  background-color: #ffffff;
   color: #000;
-  font-weight: bold;
+  width: 80%;
+  font-size: 15px;
+}
+
+.selected_file {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.selected_file .file_name {
+  display: flex;
+  align-items: center;
+}
+
+.selected_file .file_icon {
+  color: #a067e6;
+  font-size: 30px;
+  margin-right: 3px;
+}
+
+.selected_file .file_size {
+  margin-left: 40%;
+  color: #959595;
+  align-items: center;
+}
+
+.selected_file .file_delete {
+  margin-right: 0;
+  font-weight:lighter;
+  align-items: center;
+}
+
+.progress {
+  margin: 10px;
+  margin-top: 0px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.progress_bar {
+  height: 10px;
+  border-radius: 5px;
+  width: 100%;
+  background-color: #e0e0e0;
+}
+
+.progress_bar .MuiLinearProgress-bar {
+  background-color: #1976d2;
+}
+
+.progress_label {
+  padding: 2px;
+}
+
+.alert {
+  margin: 10px;
 }

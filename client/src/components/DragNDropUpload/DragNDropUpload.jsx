@@ -3,7 +3,10 @@ import Dropzone from 'react-dropzone';
 import styles from './DragNDropUpload.module.css';
 import axios from 'axios';
 
-import { Box, Button, LinearProgress, Alert, Card, CardHeader, List, ListItem } from '@mui/material';
+import { Box, Button, LinearProgress, Alert } from '@mui/material';
+import ClearIcon from '@mui/icons-material/Clear';
+import ImageIcon from '@mui/icons-material/Image';
+import FilePreview from '../FilePreview/FilePreview';
 
 
 const DragNDropUpload = ({ fromFormat, toFormat }) => {
@@ -11,33 +14,30 @@ const DragNDropUpload = ({ fromFormat, toFormat }) => {
   const [currentFile, setCurrentFile] = useState(undefined);
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState({ text: '', severity: '' });
-  const [fileInfos, setFileInfos] = useState([]);
+  const [fileInfos, setFileInfos] = useState({ url: '', name: '' });
 
   const upload = () => {
     let currentFile = selectedFiles[0];
     setProgress(0);
     setCurrentFile(currentFile);
+    setFileInfos({ url: '', name: '' });
 
     const formData = new FormData();
     formData.append('file', currentFile);
-    formData.append('fromFormat', fromFormat); // Use the prop
-    formData.append('toFormat', toFormat); // Use the prop
+    formData.append('fromFormat', fromFormat);
+    formData.append('toFormat', toFormat);
 
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
     axios.post("http://localhost:5000/api/convert", formData, {
       onUploadProgress: (event) => {
-        setProgress(Math.round((100 * event.loaded) / event.total));
+        const progressPercent = Math.round((100 * event.loaded) / event.total);
+        setProgress(progressPercent);
       }
     }).then(res => {
       setMessage({ text: 'File converted successfully.', severity: 'success' });
-      console.log(res);
-      setFileInfos([...fileInfos, res.data.convertedFile]);
+      setFileInfos({ url: res.data.convertedFileUrl, name: res.data.convertedFileName });
     }).catch(error => {
       const errorMsg = error.response?.data?.error || 'Could not upload the file!';
       setMessage({ text: errorMsg, severity: 'error' });
-      console.log(error);
       setProgress(0);
       setCurrentFile(undefined);
     });
@@ -49,73 +49,100 @@ const DragNDropUpload = ({ fromFormat, toFormat }) => {
     }
   };
 
+  const download = (e) => {
+    e.preventDefault();
+    fetch(fileInfos.url, {
+      method: "GET",
+      headers: {}
+    })
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", fileInfos.name);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+      })
+      .catch((err) => console.log(err));
+  };
+
   return (
-    <Box className="container text-center my-5 w-50">
+    <Box className={styles.container}>
+
+      {selectedFiles && selectedFiles[0].name ? (
+        <Box className={styles.selected_files}>
+          <div className={styles.selected_file}>
+            <div className={styles.file_name}>
+              <ImageIcon className={styles.file_icon} />
+              {selectedFiles[0].name.length > 30 ? (
+                selectedFiles[0].name.substring(0, 30) + '...'
+              ) : (
+                selectedFiles[0].name
+              )}
+            </div>
+
+            <div className={styles.file_size}>
+              {selectedFiles[0].size}
+            </div>
+
+            <div className={styles.file_delete}>
+              <ClearIcon />
+            </div>
+          </div>
+        </Box>
+      ) : (
+        ''
+      )}
+
+      <div className={selectedFiles && selectedFiles[0].name ? (
+        styles.dropzone_shrinked
+      ) : (styles.dropzone)}>
+        <Dropzone onDrop={onDrop} multiple={false}>
+          {({ getRootProps, getInputProps }) => (
+            <section className={styles.dropzone_box}>
+              <Box {...getRootProps()} >
+                <input {...getInputProps()} />
+                {selectedFiles && selectedFiles[0].name ? (
+                  'Add more files by drag and drop, or click to select file'
+                ) : (
+                  'Drag and drop file here, or click to select file'
+                )}
+              </Box>
+            </section>
+          )}
+        </Dropzone>
+        {selectedFiles && selectedFiles[0].name ?
+          <Button className={styles.convert_button} variant="contained" color="info" disabled={!selectedFiles} onClick={upload}>
+            Convert
+          </Button>
+          : ''}
+      </div>
+
+
       {currentFile && (
-        <Box className="progress mb-3">
-          <LinearProgress variant="determinate" value={progress} />
-          <Box className="progress-label">{progress}%</Box>
+        <Box className={styles.progress}>
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            className={styles.progress_bar}
+          />
+          <Box className={styles.progress_label}>{progress}%</Box>
         </Box>
       )}
 
-      <Dropzone onDrop={onDrop} multiple={false}>
-        {({ getRootProps, getInputProps }) => (
-          <section>
-            <Box {...getRootProps()} className={styles.dropzone} sx={{ padding: '20px', border: '2px dashed #ccc', borderRadius: '4px', cursor: 'pointer' }}>
-              <input {...getInputProps()} />
-              {selectedFiles && selectedFiles[0].name ? (
-                <Box className={styles.selected_file}>
-                  {selectedFiles[0].name}
-                </Box>
-              ) : (
-                'Drag and drop file here, or click to select file'
-              )}
-            </Box>
-            <aside className={styles.selected_file_wrapper} sx={{ marginTop: '20px' }}>
-              <Button variant="contained" color="success" disabled={!selectedFiles} onClick={upload}>
-                Convert
-              </Button>
-            </aside>
-          </section>
-        )}
-      </Dropzone>
-
       {message.text && (
-        <Alert severity={message.severity} sx={{ marginTop: '20px' }}>
+        <Alert severity={message.severity} className={styles.alert}>
           {message.text}
         </Alert>
       )}
 
-      {fileInfos.length > 0 && (
-        <Card sx={{ marginTop: '20px' }}>
-          <CardHeader title="List of Files" />
-          <List>
-            {fileInfos.map((file, index) => (
-              <ListItem key={index}>
-                <a href={file.url}>{file.name}</a>
-                <a href={file}>{file}</a> 
-              </ListItem>
-            ))}
-          </List>
-        </Card>
-      )}
-      <p>new</p>
-
-      {fileInfos.length > 0 && (
-        <Card sx={{ marginTop: '20px' }}>
-          <CardHeader title="List of Files" />
-          <List>
-            {fileInfos.map((file, index) => (
-              <ListItem key={index}>
-                <a href={file} target="_blank" rel="noopener noreferrer">Download Converted File</a>
-              </ListItem>
-            ))}
-          </List>
-        </Card>
+      {fileInfos.url && (
+        <FilePreview fileInfos={fileInfos} download={download} />
       )}
     </Box>
   );
 };
 
 export default DragNDropUpload;
-

@@ -1,0 +1,15 @@
+.header_section {
+    text-align: center;
+    margin-top: 40px;
+}
+
+.main_header {
+    font-size: 30px;
+    font-weight: 500;
+    color: #0080c4;
+    margin-bottom: 0;
+}
+
+.sub_header {
+    color: #000;
+}

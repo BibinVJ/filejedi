@@ -1,7 +1,14 @@
 .footer {
-    background-color: #faf6f1;
-    color: #000;
-    padding: 50px 0;
-    font-weight: 400;
-  }
-  
+  background-color: #282828;
+  color: #959595;
+  padding: 50px 0;
+  font-weight: 300;
+  font-size: small;
+}
+
+.footer hr {
+  border: none;
+  height: 1px;
+  color: #959595;
+  background-color: #959595; 
+}
