@@ -1,35 +1,41 @@
 const path = require('path');
-const fs = require('fs');
 
 module.exports = (req, res, next) => {
   const { fromFormat, toFormat } = req.body;
-  const file = req.file;
+  const files = req.files;
 
   if (!fromFormat || !toFormat) {
     return res.status(400).json({ error: 'Both from format and to format must be provided.' });
   }
 
-  if (!file) {
+  if (!files || files.length === 0) {
     return res.status(400).json({ error: 'No file uploaded.' });
   }
 
-  const fileExtension = path.extname(file.originalname).toLowerCase();
+  // Loop through all files and validate each file extension and content type
+  for (const file of files) {
+    const fileExtension = path.extname(file.originalname).toLowerCase();
 
-  if (fromFormat.toLowerCase() === 'jpeg' && !(fileExtension === '.jpeg' || fileExtension === '.jpg')) {
-    return res.status(400).json({ error: `File must be in JPEG format.` });
-  } else if (fromFormat.toLowerCase() !== 'jpeg' && fileExtension !== `.${fromFormat.toLowerCase()}`) {
-    return res.status(400).json({ error: `File must be in ${fromFormat} format.` });
-  }
+    if (fromFormat.toLowerCase() === 'jpeg' && !(fileExtension === '.jpeg' || fileExtension === '.jpg')) {
+      return res.status(400).json({ error: `File ${file.originalname} must be in JPEG format.` });
+    } else if (fromFormat.toLowerCase() !== 'jpeg' && fileExtension !== `.${fromFormat.toLowerCase()}`) {
+      return res.status(400).json({ error: `File ${file.originalname} must be in ${fromFormat} format.` });
+    }
 
-  // Read the file buffer and validate its content
-  const fileBuffer = file.buffer;
+    // Read the file buffer and validate its content
+    const fileBuffer = file.buffer;
 
-  if (fromFormat.toLowerCase() === 'jpeg' && !isJpeg(fileBuffer)) {
-    return res.status(400).json({ error: 'The file is not a valid JPEG image.' });
-  }
+    if (fromFormat.toLowerCase() === 'jpeg' && !isJpeg(fileBuffer)) {
+      return res.status(400).json({ error: `File ${file.originalname} is not a valid JPEG image.` });
+    }
 
-  if (fromFormat.toLowerCase() === 'png' && !isPng(fileBuffer)) {
-    return res.status(400).json({ error: 'The file is not a valid PNG image.' });
+    if (fromFormat.toLowerCase() === 'png' && !isPng(fileBuffer)) {
+      return res.status(400).json({ error: `File ${file.originalname} is not a valid PNG image.` });
+    }
+    
+    // if (fromFormat.toLowerCase() !== fileExtension.slice(1)) {
+    //   return res.status(400).json({ error: `File ${file.originalname} must be in ${fromFormat} format.` });
+    // }
   }
 
   next();

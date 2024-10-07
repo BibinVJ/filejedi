@@ -1,53 +1,88 @@
 const path = require('path');
+const archiver = require('archiver');
 const { convertJpegToPng, convertPngToJpeg, convertImageToPdf } = require('../helpers/conversionHelper');
 const { uploadFile, deleteFile } = require('../helpers/fileOperationsHelper');
 
-exports.convertFile = async (req, res) => {
+exports.convertFiles  = async (req, res) => {
   const { fromFormat, toFormat } = req.body;
-  const uploadedFile = req.file;
+  const uploadedFiles = req.files;
 
-  if (!uploadedFile) {
-    return res.status(400).json({ error: 'No file uploaded.' });
+  if (!uploadedFiles || uploadedFiles.length === 0) {
+    return res.status(400).json({ error: 'No files uploaded.' });
   }
 
-  const originalNameWithoutExt = path.parse(uploadedFile.originalname).name;
-  const ext = path.extname(uploadedFile.originalname);
-  const uniqueSuffix = Date.now();
-  const newFileName = `${originalNameWithoutExt}-${uniqueSuffix}${ext}`;
-  const finalPath = path.join('public/uploads', newFileName);
+  const convertedFiles = [];
 
   try {
-    // Use the helper to upload the file
-    await uploadFile(finalPath, uploadedFile.buffer);
+    for (const uploadedFile of uploadedFiles) {
+      const originalNameWithoutExt = path.parse(uploadedFile.originalname).name;
+      const ext = path.extname(uploadedFile.originalname);
+      const uniqueSuffix = Date.now();
+      const newFileName = `${originalNameWithoutExt}-${uniqueSuffix}${ext}`;
+      const finalPath = path.join('public/uploads', newFileName);
 
-    const convertedFileName = `${originalNameWithoutExt}-${Date.now()}.${toFormat}`;
-    const convertedFilePath = path.join('public/outputs', convertedFileName);
+      // Use the helper to upload the file
+      await uploadFile(finalPath, uploadedFile.buffer);
 
-    if ((fromFormat.toLowerCase() === 'jpeg' || fromFormat.toLowerCase() === 'png') && toFormat.toLowerCase() === 'png') {
-      await convertJpegToPng(finalPath, convertedFilePath);
-    } else if ((fromFormat.toLowerCase() === 'png' || fromFormat.toLowerCase() === 'jpeg') && toFormat.toLowerCase() === 'jpeg') {
-      await convertPngToJpeg(finalPath, convertedFilePath);
-    } else if ((fromFormat.toLowerCase() === 'jpeg' || fromFormat.toLowerCase() === 'png') && toFormat.toLowerCase() === 'pdf') {
-      await convertImageToPdf(finalPath, convertedFilePath);
-    } else {
-      // Clean up uploaded file if conversion fails
+      const convertedFileName = `${originalNameWithoutExt}-${Date.now()}.${toFormat}`;
+      const convertedFilePath = path.join('public/outputs', convertedFileName);
+
+      // Conversion logic
+      if ((fromFormat.toLowerCase() === 'jpeg' || fromFormat.toLowerCase() === 'png') && toFormat.toLowerCase() === 'png') {
+        await convertJpegToPng(finalPath, convertedFilePath);
+      } else if ((fromFormat.toLowerCase() === 'png' || fromFormat.toLowerCase() === 'jpeg') && toFormat.toLowerCase() === 'jpeg') {
+        await convertPngToJpeg(finalPath, convertedFilePath);
+      } else if ((fromFormat.toLowerCase() === 'jpeg' || fromFormat.toLowerCase() === 'png') && toFormat.toLowerCase() === 'pdf') {
+        await convertImageToPdf(finalPath, convertedFilePath);
+      } else {
+        // Clean up uploaded file if conversion fails
+        await deleteFile(finalPath);
+        return res.status(400).json({ error: 'Unsupported conversion format.' });
+      }
+
+      // Clean up uploaded file after successful conversion
       await deleteFile(finalPath);
-      return res.status(400).json({ error: 'Unsupported conversion format.' });
+
+      // Construct and add the converted file URL to the list
+      const fileUrl = `${req.protocol}://${req.get('host')}/public/outputs/${convertedFileName}`;
+      convertedFiles.push({
+        convertedFileUrl: fileUrl,
+        convertedFileName: convertedFileName,
+        originalFileName: uploadedFile.originalname
+      });
     }
 
-    // Clean up uploaded file after successful conversion
-    await deleteFile(finalPath);
-
-    // Construct the full URL to the converted file
-    const fileUrl = `${req.protocol}://${req.get('host')}/public/outputs/${convertedFileName}`;
-
-    res.json({ convertedFileUrl: fileUrl, convertedFileName: convertedFileName });
+    // Send response with individual converted files
+    res.json({ convertedFiles });
   } catch (error) {
     console.error('Error during conversion:', error);
 
-    // Ensure the uploaded file is deleted in case of an error
+    // Clean up in case of error
     await deleteFile(finalPath);
-
     res.status(500).json({ error: 'Conversion failed.' });
   }
+};
+
+// Zip download route
+exports.downloadAllFilesAsZip = async (req, res) => {
+  const output = fs.createWriteStream('public/outputs/converted-files.zip');
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  output.on('close', () => {
+    res.download('public/outputs/converted-files.zip');
+  });
+
+  archive.on('error', (err) => {
+    throw err;
+  });
+
+  archive.pipe(output);
+
+  // Add converted files to the zip
+  const outputFiles = fs.readdirSync('public/outputs');
+  outputFiles.forEach((file) => {
+    archive.file(path.join('public/outputs', file), { name: file });
+  });
+
+  await archive.finalize();
 };
